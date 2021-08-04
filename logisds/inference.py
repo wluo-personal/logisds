@@ -146,15 +146,3 @@ class Inference:
         return len(result), result
 
 
-
-
-
-
-
-
-
-
-
-
-infr = Inference(N_steps=300,model_weights_path=None)
-infr.write_halfhour_result()
