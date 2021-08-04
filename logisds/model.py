@@ -13,16 +13,16 @@ class TSModel:
         layer_input = tf.keras.layers.Input(
             shape=(self.N_steps, self.N_features)
         )
-        layer_gru, _, _ = tf.keras.layers.Bidirectional(
-            tf.keras.layers.GRU(
-                units=8,
+        layer_gru, _, _,_,_ = tf.keras.layers.Bidirectional(
+            tf.keras.layers.LSTM(
+                units=16,
                 return_sequences=True,
                 return_state=True
             )
         )(layer_input)
         layer_flatten = tf.keras.layers.Flatten()(layer_gru)
-        layer_dropout1 = tf.keras.layers.Dropout(0.3)(layer_flatten)
-        layer_dense_output_time = tf.keras.layers.Dense(1, activation="relu")(
+        layer_dropout1 = tf.keras.layers.Dropout(0.5)(layer_flatten)
+        layer_dense_output_time = tf.keras.layers.Dense(1, activation=None)(
             layer_dropout1)
         layer_dense_output_xy = tf.keras.layers.Dense(2, activation=None)(
             layer_dropout1)

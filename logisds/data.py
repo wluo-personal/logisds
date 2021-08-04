@@ -7,6 +7,7 @@ from logisds.utils import get_console_logger
 logger = get_console_logger("Data-Processor")
 
 class DataLoader:
+    NUM_FEATURES = 34
 
     def __init__(self, N_steps: int, seed:int=1, val_ratio:float=0.4, data_path=None):
         """
@@ -77,12 +78,18 @@ class DataLoader:
             1).dt.total_seconds()
         self.data_ori["time_delta"] = self.data_ori["time_delta"].fillna(
             self.data_ori["time_delta"].mean())
-        self._min_timedelta = self.data_ori["time_delta"].min()
-        self._max_timedelta = self.data_ori["time_delta"].max()
-        self._gap_timedelta = self._max_timedelta - self._min_timedelta
-        self.data_ori["time_delta"] = (
-                self.data_ori["time_delta"] - self._min_timedelta
-        ) / self._gap_timedelta
+        # self._min_timedelta = self.data_ori["time_delta"].min()
+        # self._max_timedelta = self.data_ori["time_delta"].max()
+        # self._gap_timedelta = self._max_timedelta - self._min_timedelta
+        # self.data_ori["time_delta"] = (
+        #         self.data_ori["time_delta"] - self._min_timedelta
+        # ) / self._gap_timedelta
+        self._mean_time_delta = self.data_ori["time_delta"].mean()
+        self._std_time_delta = self.data_ori["time_delta"].std()
+        self._min_scaled_time_delta = - self._mean_time_delta / self._std_time_delta
+        self.data_ori["time_delta"] = (self.data_ori["time_delta"] -\
+                                       self._mean_time_delta) / \
+                                      self._std_time_delta
 
     def __inverse_scale_x(self, x):
         return x * self._std_x + self._mean_x
@@ -91,7 +98,8 @@ class DataLoader:
         return y * self._std_y + self._mean_y
 
     def __inverse_scale_time_delta(self, time_delta):
-        return time_delta * self._gap_timedelta + self._min_timedelta
+        # return time_delta * self._gap_timedelta + self._min_timedelta
+        return time_delta * self._std_time_delta + self._mean_time_delta
 
     def _scale_data(self):
         """This method will normalize input data"""
@@ -192,13 +200,30 @@ class DataLoader:
             # in each epoch
             for i in range(num_loop):
                 batch_indexes = index[i*batch_size: (i+1)*batch_size]
-                x_concats = [
-                    self.data_array[j-self.N_steps:j] for j in batch_indexes]
+                x_concats = []
+                y_concats = []
+                for j in batch_indexes:
+                    x,y = self.gen_x_y_by_index(j)
+                    x_concats.append(x)
+                    y_concats.append(y)
                 X = np.stack(x_concats, axis=0)
-                y_concats = [self.data_array[j+1, -3:] for j in batch_indexes]
                 y = np.stack(y_concats, axis=0)
                 yield X,y
 
+    def gen_x_y_by_index(self, index, return_label=True):
+        """
+        This method can generate X,y, given index
+        :param index: interger
+        :return: (X,y)
+            X is a 1-D array with length 34
+            y is the label array with length 3
+        """
+        X = self.data_array[index-self.N_steps:index]
+        if return_label:
+            y = self.data_array[index+1, -3:]
+        else:
+            y = None
+        return X,y
 
 
 
@@ -207,7 +232,7 @@ class DataLoader:
 
 
 
-c = DataLoader(100)
-c.prepare_data()
-d = 1
+# c = DataLoader(100)
+# c.prepare_data()
+# d = 1
 
