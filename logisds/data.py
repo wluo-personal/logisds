@@ -6,10 +6,13 @@ from logisds.utils import get_console_logger
 
 logger = get_console_logger("Data-Processor")
 
+
 class DataLoader:
     NUM_FEATURES = 34
 
-    def __init__(self, N_steps: int, seed:int=1, val_ratio:float=0.4, data_path=None):
+    def __init__(
+        self, N_steps: int, seed: int = 1, val_ratio: float = 0.4, data_path=None
+    ):
         """
         This class provide methods is responsible for loading data,
         feature engineering, provide training, validation data
@@ -20,6 +23,10 @@ class DataLoader:
 
         Methods:
         reverse_scale_data
+        construct_input_data
+        prepare_data
+        data_gen
+        gen_x_y_by_index
         -----------------------------------------
         """
         self.N_steps = N_steps
@@ -30,12 +37,10 @@ class DataLoader:
         self.train_index, self.val_index = self._get_train_val_index()
         self._need_scaling = True
 
-
     def __get_data_path(self, data_path=None):
         """if data_path is None. Use th data/data.csv as data path"""
         if data_path is None:
-            path = os.path.join(os.path.dirname(__file__),
-                                "../data/data.csv")
+            path = os.path.join(os.path.dirname(__file__), "../data/data.csv")
         else:
             path = data_path
         return path
@@ -72,12 +77,13 @@ class DataLoader:
 
     def __scale_time_delta(self):
         """ min-max normalization"""
-        self.data_ori["event_time"] = pd.to_datetime(
-            self.data_ori["event_time"])
-        self.data_ori["time_delta"] =  self.data_ori["event_time"].diff(
-            1).dt.total_seconds()
+        self.data_ori["event_time"] = pd.to_datetime(self.data_ori["event_time"])
+        self.data_ori["time_delta"] = (
+            self.data_ori["event_time"].diff(1).dt.total_seconds()
+        )
         self.data_ori["time_delta"] = self.data_ori["time_delta"].fillna(
-            self.data_ori["time_delta"].mean())
+            self.data_ori["time_delta"].mean()
+        )
         # self._min_timedelta = self.data_ori["time_delta"].min()
         # self._max_timedelta = self.data_ori["time_delta"].max()
         # self._gap_timedelta = self._max_timedelta - self._min_timedelta
@@ -86,10 +92,10 @@ class DataLoader:
         # ) / self._gap_timedelta
         self._mean_time_delta = self.data_ori["time_delta"].mean()
         self._std_time_delta = self.data_ori["time_delta"].std()
-        self._min_scaled_time_delta = - self._mean_time_delta / self._std_time_delta
-        self.data_ori["time_delta"] = (self.data_ori["time_delta"] -\
-                                       self._mean_time_delta) / \
-                                      self._std_time_delta
+        self._min_scaled_time_delta = -self._mean_time_delta / self._std_time_delta
+        self.data_ori["time_delta"] = (
+            self.data_ori["time_delta"] - self._mean_time_delta
+        ) / self._std_time_delta
 
     def __inverse_scale_x(self, x):
         return x * self._std_x + self._mean_x
@@ -118,9 +124,11 @@ class DataLoader:
             orginal scaled x,
             orginal scaled y)
         """
-        return (self.__inverse_scale_time_delta(time_delta),
-                self.__inverse_scale_x(x),
-                self.__inverse_scale_y(y))
+        return (
+            self.__inverse_scale_time_delta(time_delta),
+            self.__inverse_scale_x(x),
+            self.__inverse_scale_y(y),
+        )
 
     def _time_to_features(self, time):
         """
@@ -173,7 +181,8 @@ class DataLoader:
             x = data["x"]
             y = data["y"]
             array = self.construct_input_data(
-                time=time, x=x, y=y, time_delta=time_delta)
+                time=time, x=x, y=y, time_delta=time_delta
+            )
             concats.append(array)
 
         self.data_array = np.stack(concats, axis=0)
@@ -199,16 +208,16 @@ class DataLoader:
             np.random.shuffle(index)
             # in each epoch
             for i in range(num_loop):
-                batch_indexes = index[i*batch_size: (i+1)*batch_size]
+                batch_indexes = index[i * batch_size : (i + 1) * batch_size]
                 x_concats = []
                 y_concats = []
                 for j in batch_indexes:
-                    x,y = self.gen_x_y_by_index(j)
+                    x, y = self.gen_x_y_by_index(j)
                     x_concats.append(x)
                     y_concats.append(y)
                 X = np.stack(x_concats, axis=0)
                 y = np.stack(y_concats, axis=0)
-                yield X,y
+                yield X, y
 
     def gen_x_y_by_index(self, index, return_label=True):
         """
@@ -218,21 +227,14 @@ class DataLoader:
             X is a 1-D array with length 34
             y is the label array with length 3
         """
-        X = self.data_array[index-self.N_steps:index]
+        X = self.data_array[index - self.N_steps : index]
         if return_label:
-            y = self.data_array[index+1, -3:]
+            y = self.data_array[index + 1, -3:]
         else:
             y = None
-        return X,y
-
-
-
-
-
-
+        return X, y
 
 
 # c = DataLoader(100)
 # c.prepare_data()
 # d = 1
-

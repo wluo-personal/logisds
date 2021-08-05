@@ -1,12 +1,13 @@
 import logging
 
+
 def get_console_logger(name=__file__, level=logging.INFO):
     """
     This is a console logger getter.
     Parameters
     ----------
-    name
-    level
+    name: name of the logger
+    level: logging level
 
     Returns
     logging.logger

@@ -6,30 +6,45 @@ from logisds.utils import get_console_logger
 
 logger = get_console_logger("Train-RNN")
 
+
 class Trainer:
-    def __init__(self,
-                 batch_size=100,
-                 N_steps=150,
-                 lr=0.001,
-                 random_seed=1,
-                 val_ratio=0.4,
-                 early_stopping_round=5,
-                 model_weights_path=None):
+    def __init__(
+        self,
+        batch_size=100,
+        N_steps=150,
+        lr=0.001,
+        random_seed=1,
+        val_ratio=0.4,
+        early_stopping_round=5,
+        model_weights_path=None,
+    ):
+        """
+        This class provide methods to train the RNN model
+        :param batch_size: int, NN batch size.
+        :param N_steps: int, number of time steps to use.
+        :param lr: float, learning rate.
+        :param random_seed: int, numpy random seed.
+        :param val_ratio: float, validation ratio.
+        :param early_stopping_round: int, early stopping round,
+        :param model_weights_path: str, default to None. None - the path will be
+        data/model.*. Otherwise, the path will be the specified path.
+
+        Method:
+        -------------------------------------
+        train
+        """
         self.batch_size = batch_size
         self.N_steps = N_steps
         self.val_ratio = val_ratio
         self.lr = lr
         self.early_stopping_round = early_stopping_round
-        self.model_weights_path = self._get_model_weights_path(
-            model_weights_path)
+        self.model_weights_path = self._get_model_weights_path(model_weights_path)
         self._init_data(random_seed)
-
 
     def _get_model_weights_path(self, model_weights_path=None):
         """This method will resolve correct model weight path"""
         if model_weights_path is None:
-            path = os.path.join(os.path.dirname(__file__),
-                                "../data/model")
+            path = os.path.join(os.path.dirname(__file__), "../data/model")
         else:
             path = model_weights_path
         return path
@@ -37,31 +52,30 @@ class Trainer:
     def _init_data(self, seed):
         """ This method will initialize data loader"""
         self.data_loader = DataLoader(
-            seed=seed,
-            N_steps=self.N_steps,
-            val_ratio=self.val_ratio)
+            seed=seed, N_steps=self.N_steps, val_ratio=self.val_ratio
+        )
         self.data_loader.prepare_data()
 
     def train(self):
-        tsmodel = TSModel(
-            N_steps=self.N_steps,
-            N_features=34,
-            lr=self.lr)
+        """
+        This method will train the model and dump the best weights to the
+        configured path.
+        :return: trained model.
+        """
+        tsmodel = TSModel(N_steps=self.N_steps, N_features=34, lr=self.lr)
         model = tsmodel.get_model()
         model.fit_generator(
             self.data_loader.data_gen(mode="train"),
-            steps_per_epoch=len(
-                self.data_loader.train_index) // self.batch_size,
+            steps_per_epoch=len(self.data_loader.train_index) // self.batch_size,
             verbose=1,
             epochs=100,
-            validation_data=self.data_loader.data_gen(
-                mode="val"),
-            validation_steps=len(
-                self.data_loader.val_index) // self.batch_size,
+            validation_data=self.data_loader.data_gen(mode="val"),
+            validation_steps=len(self.data_loader.val_index) // self.batch_size,
             callbacks=tf.keras.callbacks.EarlyStopping(
                 monitor="val_loss",
                 patience=self.early_stopping_round,
-                restore_best_weights=True),
+                restore_best_weights=True,
+            ),
         )
         model.save_weights(self.model_weights_path)
         logger.info(f"Model weights have been saved to: {self.model_weights_path}")
