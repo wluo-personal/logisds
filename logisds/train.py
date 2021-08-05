@@ -68,3 +68,12 @@ class Trainer:
         return model
 
 
+# if __name__ == "__main__":
+#     trainer = Trainer(batch_size=100,
+#                       N_steps=300,
+#                       lr=0.001,
+#                       random_seed=1,
+#                       val_ratio=0.4,
+#                       early_stopping_round=10,
+#                       model_weights_path=None)
+#     model = trainer.train()

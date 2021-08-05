@@ -42,6 +42,62 @@ The corrdinates has very small standard-deviation. In order to make the output/i
 to make x, y has 0 mean and 1 std.  
 
 ## Modeling
-The 
+The model is defined as below, where input is 30*34 and output shape is 1 * 3. 
+- input layer: The input take 30 time steps and 34 features for each timestamp.
+- bi-directional-lstm layer: This layer is a bi-directional LSTM and all hidden state will be captured
+- flatten-layer: This layer flatten all the hidden states of the previous layer
+- dropout layer: This layer has a dropout ratio defaut to 0.3
+- time delta output layer: This layer connects to dropout layer and will output time delta
+- x,y corrdinates output layer: This layer connects to dropout layer and will output x,y coordinates.
+- final concantenate layer: This layer concatenate the time,x,y layers and an output layer  
 
-![alt text](https://github.com/wluo-personal/logisds/blob/main/image.jpg?raw=true)
+The optimizer uses Adam, and the learning rate is set to 0.001.
+![alt text](https://github.com/wluo-personal/logisds/blob/main/jupyter/model.png?raw=true)
+
+## Training
+Data is randomly split into 60% training, 40% validation. The batch size is set to 100 and total epoch is set to 100 with early stopping for 10 rounds.
+
+## Inference
+Given that the last timestamp in the training data is T, now we need to predict all the events from T to T + 7 days.
+- predict T + 1, by using T - 30 to T
+- predict T + 2, by using T - 29 to T + 1
+- predict until T + x, where predict T + x is greater than T + 7 days
+
+# Project Detail
+## setup
+1. git clone
+```shell
+git clone https://github.com/wluo-personal/logisds.git
+```
+
+2. install dependencies (3.7.1 <= python < 3.8 ). Run below code under project root dir. (tensorflow + pandas + numpy)
+```shell
+conda create --name newenv python=3.7.10 --no-default-packages
+conda activate newenv
+pip install poetry
+poetry install
+```
+
+## project directory
+1. "pyproject.toml" defines the package dependencies
+2. jupyter folder contains all demo code
+3. test folder defines pytest cases
+4. data folder contains:
+    - data.csv: the raw data
+    - inference.csv: future 7 days inference which includes event_time, x, y
+    - inference_halfhour.csv: futures 7 days inference which includes time beginning for each half-hour block and the number of occurence
+    - model.* is the RNN model weights
+5. logisds is the python package folder
+    - data.py provide the method to do feature engineering, provide training, validation data
+    - model.py define the RNN model structure
+    - train.py define how to train the RNN (uncomment the main method and run below. You can also refer to jupyter/train.ipynb)
+      ```shell
+        python logisds/train.py 
+      ```
+    - inference.py defines how to inference the futures events and the result will be saved into data folder
+      ```shell
+        python logisds/inference.py 
+      ```
+    - utils.py defines the python log.
+    
+

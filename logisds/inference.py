@@ -103,12 +103,13 @@ class Inference:
 
         df = pd.DataFrame(outputs)
         df.to_csv(self.output_path, index=False)
+        return df
 
     def generate_halfhour_result(self):
         result = pd.read_csv(self.output_path)
         result["event_time"] = pd.to_datetime(result["event_time"])
         from_ = result["event_time"].min().floor("d")
-        end_ = result["event_time"].max().ceil("d")
+        end_ = pd.Timestamp("2017-07-07")
         cur = from_
         data = []
         while cur < end_:
@@ -146,3 +147,9 @@ class Inference:
         return len(result), result
 
 
+# if __name__ == "__main__":
+#     infr = Inference(N_steps=300, model_weights_path=None)
+#     # generate inference.csv
+#     infr.inference()
+#     # generate inference_halfhour.csv
+#     infr.generate_halfhour_result()
